@@ -2,51 +2,43 @@ import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
 export function AuthView() {
+    const [mode, setMode] = useState('login'); // 'login', 'signup', 'forgot'
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState({ text: '', type: '' });
 
-    const handleLogin = async (e) => {
+    const handleAction = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMsg({ text: '', type: '' });
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-
-        if (error) {
-            setMsg({ text: error.message, type: 'error' });
-            setLoading(false);
-        } else {
-            // Success! App.jsx will catch the onAuthStateChange event
-            setMsg({ text: 'Success! Loading dashboard...', type: 'success' });
-        }
-    };
-
-    const handleSignup = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setMsg({ text: '', type: '' });
-
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-        });
-
-        if (error) {
-            setMsg({ text: error.message, type: 'error' });
-        } else {
-            setMsg({ text: 'Check your email for the confirmation link!', type: 'success' });
+        if (mode === 'login') {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) setMsg({ text: error.message, type: 'error' });
+            else setMsg({ text: 'Success! Loading dashboard...', type: 'success' });
+        } else if (mode === 'signup') {
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) setMsg({ text: error.message, type: 'error' });
+            else setMsg({ text: 'Check your email for the confirmation link!', type: 'success' });
+        } else if (mode === 'forgot') {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + window.location.pathname,
+            });
+            if (error) setMsg({ text: error.message, type: 'error' });
+            else setMsg({ text: 'Password reset link sent to your email!', type: 'success' });
         }
         setLoading(false);
     };
 
+    const toggleMode = (newMode) => {
+        setMode(newMode);
+        setMsg({ text: '', type: '' });
+    };
+
     return (
         <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
-
             <div className="w-full max-w-md bg-[#11111a] border border-[#222233] p-8 rounded-2xl shadow-xl">
 
                 <div className="text-center mb-8">
@@ -56,8 +48,32 @@ export function AuthView() {
                             21D Tracker
                         </span>
                     </h1>
-                    <p className="text-[#888] text-sm mt-2">Log in to sync your progress across devices via Supabase.</p>
+                    <p className="text-[#888] text-sm mt-2">
+                        {mode === 'login' && 'Log in to sync your progress across devices.'}
+                        {mode === 'signup' && 'Create an account to backup your progress.'}
+                        {mode === 'forgot' && 'Reset your password via email.'}
+                    </p>
                 </div>
+
+                {/* Mode Tabs */}
+                {mode !== 'forgot' && (
+                    <div className="flex bg-[#1a1a2a] rounded-lg p-1 mb-6 border border-[#333344]">
+                        <button
+                            type="button"
+                            onClick={() => toggleMode('login')}
+                            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${mode === 'login' ? 'bg-[#3b82f6] text-white shadow-md' : 'text-[#666] hover:text-[#aaa]'}`}
+                        >
+                            Log In
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => toggleMode('signup')}
+                            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${mode === 'signup' ? 'bg-[#3b82f6] text-white shadow-md' : 'text-[#666] hover:text-[#aaa]'}`}
+                        >
+                            Sign Up
+                        </button>
+                    </div>
+                )}
 
                 {msg.text && (
                     <div className={`mb-6 p-4 rounded-lg text-sm font-medium ${msg.type === 'error' ? 'bg-[#ff450015] border border-[#ff450040] text-[#ff4500]' : 'bg-[#3b82f615] border border-[#3b82f640] text-white'}`}>
@@ -65,7 +81,7 @@ export function AuthView() {
                     </div>
                 )}
 
-                <form className="space-y-4">
+                <form className="space-y-5" onSubmit={handleAction}>
                     <div>
                         <label className="block text-xs font-bold text-[#666] uppercase tracking-wider mb-2">Email</label>
                         <input
@@ -78,43 +94,66 @@ export function AuthView() {
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-xs font-bold text-[#666] uppercase tracking-wider mb-2">Password</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-[#1a1a2a] border border-[#333344] focus:border-[#3b82f6] outline-none text-white p-3 rounded-lg transition-colors"
-                            placeholder="••••••••"
-                        />
-                    </div>
+                    {mode !== 'forgot' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="block text-xs font-bold text-[#666] uppercase tracking-wider">Password</label>
+                                {mode === 'login' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleMode('forgot')}
+                                        className="text-xs text-[#3b82f6] hover:underline hover:text-[#8b5cf6] transition-colors"
+                                    >
+                                        Forgot Password?
+                                    </button>
+                                )}
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full bg-[#1a1a2a] border border-[#333344] focus:border-[#3b82f6] outline-none text-white p-3 pr-12 rounded-lg transition-colors"
+                                    placeholder="••••••••"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666] hover:text-white transition-colors p-1"
+                                    title={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? '🫣' : '👁️'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
-                    <div className="pt-4 flex flex-col gap-3">
+                    <div className="pt-2">
                         <button
                             type="submit"
-                            onClick={handleLogin}
                             disabled={loading}
                             className={`w-full bg-gradient-to-r from-[#3b82f6] to-[#8b5cf6] hover:opacity-90 text-white p-3 rounded-lg font-bold transition-opacity ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            {loading ? 'Processing...' : 'Log In'}
-                        </button>
-
-                        <div className="relative flex py-4 items-center">
-                            <div className="flex-grow border-t border-[#333344]"></div>
-                            <span className="flex-shrink-0 mx-4 text-[#555] text-xs">OR</span>
-                            <div className="flex-grow border-t border-[#333344]"></div>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={handleSignup}
-                            disabled={loading}
-                            className="w-full bg-[#222233] hover:bg-[#2a2a3a] border border-[#333344] text-white p-3 rounded-lg font-bold transition-colors"
-                        >
-                            Create New Account
+                            {loading ? 'Processing...' : (
+                                mode === 'login' ? 'Log In' :
+                                    mode === 'signup' ? 'Create Account' :
+                                        'Send Reset Link'
+                            )}
                         </button>
                     </div>
+
+                    {mode === 'forgot' && (
+                        <div className="pt-4 text-center">
+                            <button
+                                type="button"
+                                onClick={() => toggleMode('login')}
+                                className="text-sm text-[#888] hover:text-white transition-colors"
+                            >
+                                ← Back to Login
+                            </button>
+                        </div>
+                    )}
                 </form>
 
             </div>
