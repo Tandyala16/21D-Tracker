@@ -7,22 +7,23 @@ export function ContributionGraph({ streakHistory = [], missionStart }) {
         const start = missionStart ? new Date(missionStart) : new Date();
         const dates = [];
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         // Loop specifically for exactly 21 days
         for (let i = 0; i < 21; i++) {
             const d = new Date(start);
             d.setDate(start.getDate() + i);
+            d.setHours(0, 0, 0, 0);
 
-            // Format to YYYY-MM-DD to match the streakHistory string schema
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            const dateStr = `${yyyy}-${mm}-${dd}`;
+            // Format match the streakHistory string schema which uses `toDateString()`
+            const dateStr = d.toDateString();
 
             dates.push({
                 dayNumber: i + 1,
                 dateStr: dateStr,
                 isActive: streakHistory.includes(dateStr),
-                isFuture: d > new Date() // Gray out dates that haven't happened yet
+                isFuture: d > today // Gray out dates that haven't happened yet
             });
         }
         return dates;
