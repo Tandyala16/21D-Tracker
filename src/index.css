@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Mulish:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Mulish", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-syne: "Syne", sans-serif;
+}
+
+@utility hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #222230;
+    border-radius: 2px;
+  }
+  
+  button {
+    font-family: "Mulish", sans-serif;
+    cursor: pointer;
+  }
+  button:active {
+    transform: scale(0.96);
+  }
+  
+  body {
+    background: #07070f;
+    color: #e0e0f0;
+    font-family: "Mulish", sans-serif;
+    min-height: 100vh;
+  }
+}
