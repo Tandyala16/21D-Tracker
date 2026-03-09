@@ -19,6 +19,7 @@ export default function App() {
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
     const [isHydrated, setIsHydrated] = useState(false);
+    const [cloudError, setCloudError] = useState(null);
 
     const [statusMap, setStatusMap] = useState(() => load(STORAGE_KEY + "_status", {}));
     const [kpiMap, setKpiMap] = useState(() => load(STORAGE_KEY + "_kpi", {}));
@@ -68,6 +69,10 @@ export default function App() {
                 .eq('user_id', user.id)
                 .maybeSingle();
 
+            if (error) {
+                setCloudError("Supabase Download Error: " + error.message);
+            }
+
             if (data && data.state_json && Object.keys(data.state_json).length > 0) {
                 console.log("Hydrating from Supabase...");
                 const cloudData = data.state_json;
@@ -85,8 +90,9 @@ export default function App() {
                     for (let key in cloudData) {
                         localStorage.setItem(key, typeof cloudData[key] === 'string' ? cloudData[key] : JSON.stringify(cloudData[key]));
                     }
+                    setCloudError(null); // Clear errors on success
                 } catch (e) {
-                    console.error("Hydration Error:", e);
+                    setCloudError("Hydration JSON Parse Error: " + e.message);
                 }
             }
 
@@ -137,7 +143,7 @@ export default function App() {
                 .maybeSingle();
 
             if (checkError) {
-                console.error("Sync Check Error:", checkError);
+                setCloudError("Supabase Sync Check Error: " + checkError.message);
                 return;
             }
 
@@ -147,13 +153,15 @@ export default function App() {
                     .from('user_data')
                     .update({ state_json: currentData })
                     .eq('id', existingRow.id);
-                if (updateError) console.error("Sync Update Error:", updateError);
+                if (updateError) setCloudError("Supabase Update Error: " + updateError.message);
+                else setCloudError(null);
             } else {
                 // Insert new row
                 const { error: insertError } = await supabase
                     .from('user_data')
                     .insert({ user_id: user.id, state_json: currentData });
-                if (insertError) console.error("Sync Insert Error:", insertError);
+                if (insertError) setCloudError("Supabase Insert Error: " + insertError.message);
+                else setCloudError(null);
             }
         };
 
@@ -306,19 +314,27 @@ export default function App() {
 
     return (
         <div>
-            <Navigation headerPct={headerPct} streak={derivedStreak} elapsedDays={elapsedDays} />
+            {cloudError && (
+                <div className="bg-red-500 text-white font-bold p-3 text-sm text-center fixed top-0 w-full z-[999] shadow-lg flex items-center justify-between">
+                    <div>🚨 DATABASE ERROR: {cloudError} 🚨</div>
+                    <button onClick={() => setCloudError(null)} className="px-3 bg-red-700 rounded hover:bg-red-800">Dismiss</button>
+                </div>
+            )}
+            <div className={cloudError ? "pt-12" : ""}>
+                <Navigation headerPct={headerPct} streak={derivedStreak} elapsedDays={elapsedDays} />
 
-            <div className="max-w-[960px] mx-auto py-5 px-3 sm:px-6 md:py-8">
-                <Routes>
-                    <Route path="/" element={<Dashboard statusMap={statusMap} kpiMap={kpiMap} counters={counters} hourly={hourly} streak={derivedStreak} elapsedDays={elapsedDays} />} />
-                    <Route path="/hourly" element={<HourlyView hourly={hourly} setHourly={setHourly} counters={counters} setCounters={setCounters} notes={notes} setNotes={setNotes} />} />
-                    <Route path="/aptitude" element={<AptitudeView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
-                    <Route path="/dsa" element={<DSAView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
-                    <Route path="/cs" element={<CoreCSView statusMap={statusMap} onToggleStatus={toggleStatus} />} />
-                    <Route path="/weekly" element={<WeeklyView kpiMap={kpiMap} onToggle={toggleKpi} counters={counters} setCounters={setCounters} />} />
-                    <Route path="/settings" element={<SettingsView />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
+                <div className="max-w-[960px] mx-auto py-5 px-3 sm:px-6 md:py-8">
+                    <Routes>
+                        <Route path="/" element={<Dashboard statusMap={statusMap} kpiMap={kpiMap} counters={counters} hourly={hourly} streak={derivedStreak} elapsedDays={elapsedDays} />} />
+                        <Route path="/hourly" element={<HourlyView hourly={hourly} setHourly={setHourly} counters={counters} setCounters={setCounters} notes={notes} setNotes={setNotes} />} />
+                        <Route path="/aptitude" element={<AptitudeView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
+                        <Route path="/dsa" element={<DSAView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
+                        <Route path="/cs" element={<CoreCSView statusMap={statusMap} onToggleStatus={toggleStatus} />} />
+                        <Route path="/weekly" element={<WeeklyView kpiMap={kpiMap} onToggle={toggleKpi} counters={counters} setCounters={setCounters} />} />
+                        <Route path="/settings" element={<SettingsView />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </div>
             </div>
         </div>
     );
