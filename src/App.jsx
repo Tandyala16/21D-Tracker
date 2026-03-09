@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Routes, Route } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { LOGICAL_REASONING, QUANTITATIVE_APTITUDE, DSA_TOPICS, CORE_CS, STORAGE_KEY } from "./constants/data";
 import { load, save } from "./utils/storage";
 
@@ -10,8 +10,15 @@ import { AptitudeView } from "./components/views/AptitudeView";
 import { DSAView } from "./components/views/DSAView";
 import { CoreCSView } from "./components/views/CoreCSView";
 import { WeeklyView } from "./components/views/WeeklyView";
+import { SettingsView } from "./components/views/SettingsView";
+import { AuthView } from "./components/views/AuthView";
+
+import { supabase } from "./lib/supabase";
 
 export default function App() {
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
+
     const [statusMap, setStatusMap] = useState(() => load(STORAGE_KEY + "_status", {}));
     const [kpiMap, setKpiMap] = useState(() => load(STORAGE_KEY + "_kpi", {}));
     const [hourly, setHourly] = useState(() => load(STORAGE_KEY + "_hourly", {}));
@@ -31,6 +38,60 @@ export default function App() {
         return stored ? new Date(stored) : new Date(); // Start clock today if undefined
     });
 
+    // 1. Auth Subscription
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null);
+            setAuthLoading(false);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+            setAuthLoading(false);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // 2. Hydration (Download from cloud on login)
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchUserData = async () => {
+            const { data, error } = await supabase
+                .from('user_data')
+                .select('state_json')
+                .eq('user_id', user.id)
+                .single();
+
+            if (data && data.state_json && Object.keys(data.state_json).length > 0) {
+                console.log("Hydrating from Supabase...");
+                const cloudData = data.state_json;
+
+                try {
+                    if (cloudData[STORAGE_KEY + "_status"]) setStatusMap(JSON.parse(cloudData[STORAGE_KEY + "_status"]));
+                    if (cloudData[STORAGE_KEY + "_kpi"]) setKpiMap(JSON.parse(cloudData[STORAGE_KEY + "_kpi"]));
+                    if (cloudData[STORAGE_KEY + "_hourly"]) setHourly(JSON.parse(cloudData[STORAGE_KEY + "_hourly"]));
+                    if (cloudData[STORAGE_KEY + "_counters"]) setCounters(JSON.parse(cloudData[STORAGE_KEY + "_counters"]));
+                    if (cloudData[STORAGE_KEY + "_notes"]) setNotes(cloudData[STORAGE_KEY + "_notes"]);
+                    if (cloudData[STORAGE_KEY + "_streak_history"]) setStreakHistory(JSON.parse(cloudData[STORAGE_KEY + "_streak_history"]));
+                    if (cloudData[STORAGE_KEY + "_last_reset"]) setLastReset(cloudData[STORAGE_KEY + "_last_reset"]);
+                    if (cloudData[STORAGE_KEY + "_mission_start"]) setMissionStart(new Date(cloudData[STORAGE_KEY + "_mission_start"]));
+
+                    for (let key in cloudData) {
+                        localStorage.setItem(key, typeof cloudData[key] === 'string' ? cloudData[key] : JSON.stringify(cloudData[key]));
+                    }
+                } catch (e) {
+                    console.error("Hydration Error:", e);
+                }
+            }
+        };
+        fetchUserData();
+    }, [user]);
+
+    // Track first load to prevent overwriting cloud with empty local state initially
+    const isFirstRun = useRef(true);
+
     useEffect(() => { save(STORAGE_KEY + "_status", statusMap); }, [statusMap]);
     useEffect(() => { save(STORAGE_KEY + "_kpi", kpiMap); }, [kpiMap]);
     useEffect(() => { save(STORAGE_KEY + "_hourly", hourly); }, [hourly]);
@@ -39,6 +100,39 @@ export default function App() {
     useEffect(() => { save(STORAGE_KEY + "_streak_history", streakHistory); }, [streakHistory]);
     useEffect(() => { try { localStorage.setItem(STORAGE_KEY + "_last_reset", lastReset); } catch { } }, [lastReset]);
     useEffect(() => { try { localStorage.setItem(STORAGE_KEY + "_mission_start", missionStart.toISOString()); } catch { } }, [missionStart]);
+
+    // 3. Sync to Cloud (Debounced)
+    useEffect(() => {
+        if (!user) return;
+        if (isFirstRun.current) {
+            isFirstRun.current = false;
+            return;
+        }
+
+        const syncToCloud = async () => {
+            const currentData = {
+                [STORAGE_KEY + "_status"]: JSON.stringify(statusMap),
+                [STORAGE_KEY + "_kpi"]: JSON.stringify(kpiMap),
+                [STORAGE_KEY + "_hourly"]: JSON.stringify(hourly),
+                [STORAGE_KEY + "_counters"]: JSON.stringify(counters),
+                [STORAGE_KEY + "_notes"]: notes,
+                [STORAGE_KEY + "_streak_history"]: JSON.stringify(streakHistory),
+                [STORAGE_KEY + "_last_reset"]: lastReset,
+                [STORAGE_KEY + "_mission_start"]: missionStart.toISOString()
+            };
+
+            const { error } = await supabase
+                .from('user_data')
+                .upsert({ user_id: user.id, state_json: currentData }, { onConflict: 'user_id', ignoreDuplicates: false });
+
+            if (error) console.error("Sync Error:", error);
+        };
+
+        const timeoutId = setTimeout(syncToCloud, 1500);
+        return () => clearTimeout(timeoutId);
+
+    }, [user, statusMap, kpiMap, hourly, counters, notes, streakHistory, lastReset, missionStart]);
+
 
     // Calculate elapsed mission days (1-indexed base)
     const now = new Date();
@@ -164,6 +258,14 @@ export default function App() {
     const masteredTopicsCount = LOGICAL_REASONING.filter(t => statusMap[t.id] === 2).length + QUANTITATIVE_APTITUDE.filter(t => statusMap[t.id] === 2).length + DSA_TOPICS.filter(t => statusMap[t.id] === 2).length + CORE_CS.filter(t => statusMap[t.id] === 2).length;
     const headerPct = Math.round((masteredTopicsCount / totalTopicsCount) * 100) || 0;
 
+    if (authLoading) {
+        return <div className="min-h-screen flex items-center justify-center text-white bg-[#0e0e1a]">Loading...</div>;
+    }
+
+    if (!user) {
+        return <AuthView />;
+    }
+
     return (
         <div>
             <Navigation headerPct={headerPct} streak={derivedStreak} elapsedDays={elapsedDays} />
@@ -176,6 +278,8 @@ export default function App() {
                     <Route path="/dsa" element={<DSAView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
                     <Route path="/cs" element={<CoreCSView statusMap={statusMap} onToggleStatus={toggleStatus} />} />
                     <Route path="/weekly" element={<WeeklyView kpiMap={kpiMap} onToggle={toggleKpi} counters={counters} setCounters={setCounters} />} />
+                    <Route path="/settings" element={<SettingsView />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </div>
         </div>

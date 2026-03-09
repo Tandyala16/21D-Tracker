@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
 
 const NAV = [
     { v: "/", l: "⌂ Home", short: "Home" },
@@ -11,6 +12,12 @@ const NAV = [
 
 export function Navigation({ headerPct, streak, elapsedDays }) {
     const location = useLocation();
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        localStorage.clear();
+        window.location.reload();
+    };
 
     return (
         <div className="bg-[#0a0a14] border-b border-[#16162a] px-3 sm:px-4 h-[54px] flex items-center justify-between sticky top-0 z-[100] gap-2">
@@ -50,9 +57,14 @@ export function Navigation({ headerPct, streak, elapsedDays }) {
                             {headerPct}%
                         </div>
                     </div>
-                    <Link to="/settings" className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-[#1a1a2a] text-[#888] hover:text-[#fff] transition-colors border border-[#333344] hover:border-[#555577]">
-                        ⚙️
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        <Link to="/settings" className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-[#1a1a2a] text-[#888] hover:text-[#fff] transition-colors border border-[#333344] hover:border-[#555577]">
+                            ⚙️
+                        </Link>
+                        <button onClick={handleLogout} title="Log Out" className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-[#3a1a1a] text-[#ff4444] hover:text-[#ffaaaa] transition-colors border border-[#662222] hover:border-[#883333]">
+                            🚪
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
