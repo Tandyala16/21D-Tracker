@@ -18,6 +18,7 @@ import { supabase } from "./lib/supabase";
 export default function App() {
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
+    const [isHydrated, setIsHydrated] = useState(false);
 
     const [statusMap, setStatusMap] = useState(() => load(STORAGE_KEY + "_status", {}));
     const [kpiMap, setKpiMap] = useState(() => load(STORAGE_KEY + "_kpi", {}));
@@ -55,7 +56,10 @@ export default function App() {
 
     // 2. Hydration (Download from cloud on login)
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            setIsHydrated(false);
+            return;
+        }
 
         const fetchUserData = async () => {
             const { data, error } = await supabase
@@ -85,6 +89,9 @@ export default function App() {
                     console.error("Hydration Error:", e);
                 }
             }
+
+            // Unlock syncing and UI rendering ONLY AFTER hydration finishes
+            setIsHydrated(true);
         };
         fetchUserData();
     }, [user]);
@@ -103,7 +110,8 @@ export default function App() {
 
     // 3. Sync to Cloud (Debounced)
     useEffect(() => {
-        if (!user) return;
+        if (!user || !isHydrated) return; // CRITICAL: Stop sync completely until hydration unlocks
+
         if (isFirstRun.current) {
             isFirstRun.current = false;
             return;
@@ -128,10 +136,10 @@ export default function App() {
             if (error) console.error("Sync Error:", error);
         };
 
-        const timeoutId = setTimeout(syncToCloud, 1500);
+        const timeoutId = setTimeout(syncToCloud, 2000);
         return () => clearTimeout(timeoutId);
 
-    }, [user, statusMap, kpiMap, hourly, counters, notes, streakHistory, lastReset, missionStart]);
+    }, [user, isHydrated, statusMap, kpiMap, hourly, counters, notes, streakHistory, lastReset, missionStart]);
 
 
     // Calculate elapsed mission days (1-indexed base)
@@ -264,6 +272,15 @@ export default function App() {
 
     if (!user) {
         return <AuthView />;
+    }
+
+    if (!isHydrated) {
+        return (
+            <div className="min-h-screen flex flex-col gap-4 items-center justify-center bg-[#0a0a14]">
+                <div className="text-[40px] animate-bounce">🎯</div>
+                <div className="font-syne font-bold text-sm tracking-wide text-[#3b82f6] animate-pulse">Syncing with Mission Control...</div>
+            </div>
+        );
     }
 
     return (
