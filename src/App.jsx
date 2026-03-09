@@ -66,7 +66,7 @@ export default function App() {
                 .from('user_data')
                 .select('state_json')
                 .eq('user_id', user.id)
-                .single();
+                .maybeSingle();
 
             if (data && data.state_json && Object.keys(data.state_json).length > 0) {
                 console.log("Hydrating from Supabase...");
@@ -129,11 +129,32 @@ export default function App() {
                 [STORAGE_KEY + "_mission_start"]: missionStart.toISOString()
             };
 
-            const { error } = await supabase
+            // Check if row exists (Because user_id might not have a UNIQUE constraint, upsert fails)
+            const { data: existingRow, error: checkError } = await supabase
                 .from('user_data')
-                .upsert({ user_id: user.id, state_json: currentData }, { onConflict: 'user_id', ignoreDuplicates: false });
+                .select('id')
+                .eq('user_id', user.id)
+                .maybeSingle();
 
-            if (error) console.error("Sync Error:", error);
+            if (checkError) {
+                console.error("Sync Check Error:", checkError);
+                return;
+            }
+
+            if (existingRow) {
+                // Update existing row
+                const { error: updateError } = await supabase
+                    .from('user_data')
+                    .update({ state_json: currentData })
+                    .eq('id', existingRow.id);
+                if (updateError) console.error("Sync Update Error:", updateError);
+            } else {
+                // Insert new row
+                const { error: insertError } = await supabase
+                    .from('user_data')
+                    .insert({ user_id: user.id, state_json: currentData });
+                if (insertError) console.error("Sync Insert Error:", insertError);
+            }
         };
 
         const timeoutId = setTimeout(syncToCloud, 2000);
