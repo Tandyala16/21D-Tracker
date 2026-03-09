@@ -5,7 +5,7 @@ import { Chip } from "../ui/Chip";
 import { Bar } from "../ui/Bar";
 import { Checkbox } from "../ui/Checkbox";
 
-export function WeeklyView({ kpiMap, onToggle, counters, setCounters }) {
+export function WeeklyView({ kpiMap, onToggle, counters, setCounters, onUpdateCounter }) {
     const [wk, setWk] = useState(0);
     const W = WEEKLY_KPIS[wk];
 
@@ -27,9 +27,9 @@ export function WeeklyView({ kpiMap, onToggle, counters, setCounters }) {
                     <div key={s.k} className="bg-[#0e0e1a] border border-[#1e1e2e] rounded-xl p-3 text-center">
                         <div className="text-[10px] text-[#555] uppercase tracking-[0.5px] mb-1.5 whitespace-nowrap overflow-hidden text-ellipsis">{s.l}</div>
                         <div className="flex items-center justify-center gap-1.5 mb-1.5">
-                            <button onClick={() => setCounters(p => ({ ...p, [s.k]: Math.max(0, p[s.k] - 1) }))} className="w-[22px] h-[22px] rounded-md bg-[#1a1a2e] text-[#666] text-sm cursor-pointer hover:bg-[#22223a] flex items-center justify-center font-bold shrink-0">−</button>
+                            <button onClick={() => onUpdateCounter(s.k, -1)} className="w-[22px] h-[22px] rounded-md bg-[#1a1a2e] text-[#666] text-sm cursor-pointer hover:bg-[#22223a] flex items-center justify-center font-bold shrink-0">−</button>
                             <span className="font-mono text-xl font-extrabold" style={{ color: s.c }}>{counters[s.k]}</span>
-                            <button onClick={() => setCounters(p => ({ ...p, [s.k]: p[s.k] + 1 }))} className="w-[22px] h-[22px] rounded-md text-[#000] text-sm cursor-pointer hover:opacity-90 flex items-center justify-center font-bold shrink-0" style={{ background: s.c }}>+</button>
+                            <button onClick={() => onUpdateCounter(s.k, 1)} className="w-[22px] h-[22px] rounded-md text-[#000] text-sm cursor-pointer hover:opacity-90 flex items-center justify-center font-bold shrink-0" style={{ background: s.c }}>+</button>
                         </div>
                         <Bar pct={Math.min(100, Math.round(counters[s.k] / s.max * 100) || 0)} color={s.c} h={3} />
                         <div className="text-[10px] text-[#555] mt-1">{counters[s.k]}{s.hint}</div>

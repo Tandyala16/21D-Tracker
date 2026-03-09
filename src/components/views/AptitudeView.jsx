@@ -4,7 +4,7 @@ import { Ring } from "../ui/Ring";
 import { Bar } from "../ui/Bar";
 import { TopicTracker } from "../shared/TopicTracker";
 
-export function AptitudeView({ statusMap, onToggleStatus, counters, setCounters }) {
+export function AptitudeView({ statusMap, onToggleStatus, counters, setCounters, onUpdateCounter }) {
     const [tab, setTab] = useState("lr");
     const lrMastered = LOGICAL_REASONING.filter(t => statusMap[t.id] === 2).length;
     const qaMastered = QUANTITATIVE_APTITUDE.filter(t => statusMap[t.id] === 2).length;
@@ -46,9 +46,9 @@ export function AptitudeView({ statusMap, onToggleStatus, counters, setCounters 
                     <div className="text-[11px] text-[#555]">Goal: 20–30 questions per day from IndiaBIX / practice sets</div>
                 </div>
                 <div className="flex items-center justify-center gap-2 w-full sm:w-auto mt-1 sm:mt-0">
-                    <button onClick={() => setCounters(p => ({ ...p, aptToday: Math.max(0, p.aptToday - 1) }))} className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-[#1a1a2e] text-[#888] text-base font-bold cursor-pointer hover:bg-[#22223a]">−</button>
+                    <button onClick={() => onUpdateCounter("aptToday", -1)} className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-[#1a1a2e] text-[#888] text-base font-bold cursor-pointer hover:bg-[#22223a]">−</button>
                     <span className="font-mono text-[28px] sm:text-[24px] font-extrabold text-[#a78bfa] min-w-[40px] text-center">{counters.aptToday}</span>
-                    <button onClick={() => setCounters(p => ({ ...p, aptToday: p.aptToday + 1 }))} className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-[#8b5cf6] text-[#fff] text-base font-bold cursor-pointer hover:opacity-90">+</button>
+                    <button onClick={() => onUpdateCounter("aptToday", 1)} className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-[#8b5cf6] text-[#fff] text-base font-bold cursor-pointer hover:opacity-90">+</button>
                 </div>
             </div>
 

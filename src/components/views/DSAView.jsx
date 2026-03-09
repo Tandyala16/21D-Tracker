@@ -4,7 +4,7 @@ import { Chip } from "../ui/Chip";
 import { Bar } from "../ui/Bar";
 import { TopicTracker } from "../shared/TopicTracker";
 
-export function DSAView({ statusMap, onToggleStatus, counters, setCounters }) {
+export function DSAView({ statusMap, onToggleStatus, counters, setCounters, onUpdateCounter }) {
     const mastered = DSA_TOPICS.filter(t => statusMap[t.id] === 2).length;
     const inprog = DSA_TOPICS.filter(t => statusMap[t.id] === 1).length;
     const pct = Math.round(mastered / DSA_TOPICS.length * 100) || 0;
@@ -43,12 +43,12 @@ export function DSAView({ statusMap, onToggleStatus, counters, setCounters }) {
                 </div>
                 <div className="flex items-center justify-center gap-4 w-full sm:w-auto mt-2 sm:mt-0">
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setCounters(p => ({ ...p, leetTotal: Math.max(0, p.leetTotal - 1) }))} className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-[#1a1a2e] text-[#888] text-base font-bold cursor-pointer hover:bg-[#22223a]">−</button>
+                        <button onClick={() => onUpdateCounter("leetTotal", -1)} className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-[#1a1a2e] text-[#888] text-base font-bold cursor-pointer hover:bg-[#22223a]">−</button>
                         <div className="text-center min-w-[50px]">
                             <span className="font-mono text-[28px] sm:text-[24px] font-extrabold text-[#f59e0b]">{counters.leetTotal}</span>
                             <span className="text-[13px] text-[#555] hidden sm:inline">/80</span>
                         </div>
-                        <button onClick={() => setCounters(p => ({ ...p, leetTotal: p.leetTotal + 1 }))} className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-[#f59e0b] text-[#000] text-base font-bold cursor-pointer hover:opacity-90">+</button>
+                        <button onClick={() => onUpdateCounter("leetTotal", 1)} className="w-8 h-8 sm:w-7 sm:h-7 rounded-lg bg-[#f59e0b] text-[#000] text-base font-bold cursor-pointer hover:opacity-90">+</button>
                     </div>
                     <div className="hidden sm:block">
                         <Ring pct={Math.min(100, Math.round(counters.leetTotal / 80 * 100) || 0)} size={46} sw={4} color="#f59e0b" />

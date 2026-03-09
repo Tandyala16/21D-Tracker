@@ -326,6 +326,25 @@ export default function App() {
         setKpiMap(p => ({ ...p, [id]: !p[id] }));
     }, []);
 
+    const handleCounterChange = useCallback((key, delta) => {
+        setCounters(p => {
+            const currentVal = p[key] || 0;
+            const newVal = Math.max(0, currentVal + delta);
+            if (newVal === currentVal) return p;
+
+            const res = { ...p, [key]: newVal };
+
+            // Bidirectional Syncing: Modifying "Today" updates the "Total", and vice-versa
+            if (key === "appsToday") res.appsTotal = Math.max(0, (p.appsTotal || 0) + delta);
+            if (key === "appsTotal") res.appsToday = Math.max(0, (p.appsToday || 0) + delta);
+
+            if (key === "leetToday") res.leetTotal = Math.max(0, (p.leetTotal || 0) + delta);
+            if (key === "leetTotal") res.leetToday = Math.max(0, (p.leetToday || 0) + delta);
+
+            return res;
+        });
+    }, []);
+
     const totalTopicsCount = LOGICAL_REASONING.length + QUANTITATIVE_APTITUDE.length + DSA_TOPICS.length + CORE_CS.length;
     const masteredTopicsCount = LOGICAL_REASONING.filter(t => statusMap[t.id] === 2).length + QUANTITATIVE_APTITUDE.filter(t => statusMap[t.id] === 2).length + DSA_TOPICS.filter(t => statusMap[t.id] === 2).length + CORE_CS.filter(t => statusMap[t.id] === 2).length;
     const headerPct = Math.round((masteredTopicsCount / totalTopicsCount) * 100) || 0;
@@ -363,11 +382,11 @@ export default function App() {
                 <div className="max-w-[960px] mx-auto py-5 px-3 sm:px-6 md:py-8">
                     <Routes>
                         <Route path="/" element={<Dashboard statusMap={statusMap} kpiMap={kpiMap} counters={counters} hourly={hourly} streak={derivedStreak} elapsedDays={elapsedDays} />} />
-                        <Route path="/hourly" element={<HourlyView hourly={hourly} setHourly={setHourly} counters={counters} setCounters={setCounters} notes={notes} setNotes={setNotes} userName={userName} />} />
-                        <Route path="/aptitude" element={<AptitudeView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
-                        <Route path="/dsa" element={<DSAView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
+                        <Route path="/hourly" element={<HourlyView hourly={hourly} setHourly={setHourly} counters={counters} setCounters={setCounters} onUpdateCounter={handleCounterChange} notes={notes} setNotes={setNotes} userName={userName} />} />
+                        <Route path="/aptitude" element={<AptitudeView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} onUpdateCounter={handleCounterChange} />} />
+                        <Route path="/dsa" element={<DSAView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} onUpdateCounter={handleCounterChange} />} />
                         <Route path="/cs" element={<CoreCSView statusMap={statusMap} onToggleStatus={toggleStatus} />} />
-                        <Route path="/weekly" element={<WeeklyView kpiMap={kpiMap} onToggle={toggleKpi} counters={counters} setCounters={setCounters} />} />
+                        <Route path="/weekly" element={<WeeklyView kpiMap={kpiMap} onToggle={toggleKpi} counters={counters} setCounters={setCounters} onUpdateCounter={handleCounterChange} />} />
                         <Route path="/settings" element={<SettingsView onRestore={applyStateFromData} onHardReset={handleHardReset} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

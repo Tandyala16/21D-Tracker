@@ -3,20 +3,8 @@ import { Checkbox } from "../ui/Checkbox";
 import { Chip } from "../ui/Chip";
 import { Bar } from "../ui/Bar";
 
-export function HourlyView({ hourly, setHourly, counters, setCounters, notes, setNotes, userName }) {
+export function HourlyView({ hourly, setHourly, counters, setCounters, onUpdateCounter, notes, setNotes, userName }) {
     const done = HOURLY_BLOCKS.filter(h => hourly[h.id]).length;
-
-    const handleCounterChange = (k, delta) => {
-        setCounters(p => {
-            const currentVal = p[k] || 0;
-            const newVal = Math.max(0, currentVal + delta);
-            if (newVal === currentVal) return p;
-            const res = { ...p, [k]: newVal };
-            if (k === "appsToday") res.appsTotal = Math.max(0, (p.appsTotal || 0) + delta);
-            if (k === "leetToday") res.leetTotal = Math.max(0, (p.leetTotal || 0) + delta);
-            return res;
-        });
-    };
 
     return (
         <div>
@@ -93,9 +81,9 @@ export function HourlyView({ hourly, setHourly, counters, setCounters, notes, se
                             <div className="text-[10px] text-[#555] mt-0.5 hidden md:block">{s.hint}</div>
                         </div>
                         <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => handleCounterChange(s.k, -1)} className="w-[26px] h-[26px] rounded-md bg-[#1a1a2e] text-[#888] text-base font-bold flex items-center justify-center hover:bg-[#22223a]">−</button>
+                            <button onClick={() => onUpdateCounter(s.k, -1)} className="w-[26px] h-[26px] rounded-md bg-[#1a1a2e] text-[#888] text-base font-bold flex items-center justify-center hover:bg-[#22223a]">−</button>
                             <span className="font-mono text-[24px] font-extrabold min-w-[36px] text-center" style={{ color: s.c }}>{counters[s.k]}</span>
-                            <button onClick={() => handleCounterChange(s.k, 1)} className="w-[26px] h-[26px] rounded-md text-[#000] text-base font-bold flex items-center justify-center hover:opacity-90" style={{ background: s.c }}>+</button>
+                            <button onClick={() => onUpdateCounter(s.k, 1)} className="w-[26px] h-[26px] rounded-md text-[#000] text-base font-bold flex items-center justify-center hover:opacity-90" style={{ background: s.c }}>+</button>
                         </div>
                     </div>
                 ))}
