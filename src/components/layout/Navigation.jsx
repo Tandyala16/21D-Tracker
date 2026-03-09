@@ -10,7 +10,7 @@ const NAV = [
     { v: "/weekly", l: "📅 Weekly", short: "KPIs" },
 ];
 
-export function Navigation({ headerPct, streak, elapsedDays }) {
+export function Navigation({ headerPct, streak, elapsedDays, userName }) {
     const location = useLocation();
 
     const handleLogout = async () => {
@@ -25,7 +25,7 @@ export function Navigation({ headerPct, streak, elapsedDays }) {
                 <div className="w-[30px] h-[30px] rounded-lg bg-gradient-to-br from-[#3b82f6] to-[#8b5cf6] flex items-center justify-center text-[15px]">🎯</div>
                 <div className="hidden sm:block">
                     <div className="font-syne font-extrabold text-xs tracking-[-0.2px] leading-[1.2]">DAY {Math.min(21, elapsedDays || 1)} / 21 MISSION</div>
-                    <div className="text-[9px] text-[#444]">Vasanthkumar · SE · 8-12 LPA</div>
+                    <div className="text-[9px] text-[#444]">{userName || 'Explorer'} · SE · 8-12 LPA</div>
                 </div>
             </div>
             <div className="flex gap-1 overflow-x-auto hide-scrollbar flex-1 items-center max-w-[600px]">

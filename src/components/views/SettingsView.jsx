@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { STORAGE_KEY } from '../../constants/data';
 
-export function SettingsView() {
+export function SettingsView({ onRestore, onHardReset }) {
     const [msg, setMsg] = useState('');
     const fileInputRef = useRef(null);
 
@@ -47,13 +47,15 @@ export function SettingsView() {
                     return;
                 }
 
-                // Overwrite localStorage
-                for (const key in data) {
-                    localStorage.setItem(key, data[key]);
+                // Call the App.jsx orchestrator to load memory safely
+                if (onRestore) {
+                    onRestore(data);
+                    setMsg("✅ Backup Restored and Synced to Cloud!");
+                } else {
+                    setMsg("❌ Restoration pipeline unavailable.");
                 }
 
-                setMsg("🔄 Restoring data... Reloading!");
-                setTimeout(() => window.location.reload(), 1500);
+                setTimeout(() => setMsg(""), 3000);
 
             } catch (err) {
                 setMsg("❌ Failed to parse JSON file.");
@@ -62,15 +64,14 @@ export function SettingsView() {
         reader.readAsText(file);
     };
 
-    const hardReset = () => {
-        if (window.confirm("🚨 DANGER ZONE 🚨\nAre you absolutely sure?\nThis will permanently delete all your progress, counters, and streaks!")) {
-            for (let i = localStorage.length - 1; i >= 0; i--) {
-                const key = localStorage.key(i);
-                if (key.startsWith(STORAGE_KEY)) {
-                    localStorage.removeItem(key);
-                }
+    const hardReset = async () => {
+        if (window.confirm("🚨 DANGER ZONE 🚨\nAre you absolutely sure?\nThis will permanently delete all your progress, counters, and streaks from the Database!")) {
+            setMsg("🔄 Wiping Database...");
+            if (onHardReset) {
+                await onHardReset();
+                setMsg("✅ Account erased cleanly.");
+                setTimeout(() => setMsg(""), 3000);
             }
-            window.location.reload();
         }
     }
 

@@ -55,6 +55,58 @@ export default function App() {
         return () => subscription.unsubscribe();
     }, []);
 
+    // Helper to safely apply an unstructured JSON payload to all React States
+    const applyStateFromData = (dataObj) => {
+        try {
+            if (dataObj[STORAGE_KEY + "_status"]) setStatusMap(JSON.parse(dataObj[STORAGE_KEY + "_status"]));
+            else setStatusMap({});
+
+            if (dataObj[STORAGE_KEY + "_kpi"]) setKpiMap(JSON.parse(dataObj[STORAGE_KEY + "_kpi"]));
+            else setKpiMap({});
+
+            if (dataObj[STORAGE_KEY + "_hourly"]) setHourly(JSON.parse(dataObj[STORAGE_KEY + "_hourly"]));
+            else setHourly({});
+
+            if (dataObj[STORAGE_KEY + "_counters"]) setCounters(JSON.parse(dataObj[STORAGE_KEY + "_counters"]));
+            else setCounters({ appsToday: 0, appsTotal: 0, leetToday: 0, leetTotal: 0, aptToday: 0, mocks: 0, interviews: 0 });
+
+            if (dataObj[STORAGE_KEY + "_notes"]) setNotes(dataObj[STORAGE_KEY + "_notes"]);
+            else setNotes("");
+
+            if (dataObj[STORAGE_KEY + "_streak_history"]) setStreakHistory(JSON.parse(dataObj[STORAGE_KEY + "_streak_history"]));
+            else setStreakHistory([]);
+
+            if (dataObj[STORAGE_KEY + "_last_reset"]) setLastReset(dataObj[STORAGE_KEY + "_last_reset"]);
+            else setLastReset(new Date().toDateString());
+
+            if (dataObj[STORAGE_KEY + "_mission_start"]) setMissionStart(new Date(dataObj[STORAGE_KEY + "_mission_start"]));
+            else setMissionStart(new Date());
+
+            for (let key in dataObj) {
+                localStorage.setItem(key, typeof dataObj[key] === 'string' ? dataObj[key] : JSON.stringify(dataObj[key]));
+            }
+        } catch (e) {
+            console.error("State Parse Error:", e);
+            setCloudError("Parse Error: " + e.message);
+        }
+    };
+
+    const handleHardReset = async () => {
+        applyStateFromData({}); // Wipes local state
+
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(STORAGE_KEY)) {
+                localStorage.removeItem(key);
+            }
+        }
+
+        if (user) {
+            const { error } = await supabase.from('user_data').delete().eq('user_id', user.id);
+            if (error) setCloudError("Supabase Delete Error: " + error.message);
+        }
+    };
+
     // 2. Hydration (Download from cloud on login)
     useEffect(() => {
         if (!user) {
@@ -75,25 +127,8 @@ export default function App() {
 
             if (data && data.state_json && Object.keys(data.state_json).length > 0) {
                 console.log("Hydrating from Supabase...");
-                const cloudData = data.state_json;
-
-                try {
-                    if (cloudData[STORAGE_KEY + "_status"]) setStatusMap(JSON.parse(cloudData[STORAGE_KEY + "_status"]));
-                    if (cloudData[STORAGE_KEY + "_kpi"]) setKpiMap(JSON.parse(cloudData[STORAGE_KEY + "_kpi"]));
-                    if (cloudData[STORAGE_KEY + "_hourly"]) setHourly(JSON.parse(cloudData[STORAGE_KEY + "_hourly"]));
-                    if (cloudData[STORAGE_KEY + "_counters"]) setCounters(JSON.parse(cloudData[STORAGE_KEY + "_counters"]));
-                    if (cloudData[STORAGE_KEY + "_notes"]) setNotes(cloudData[STORAGE_KEY + "_notes"]);
-                    if (cloudData[STORAGE_KEY + "_streak_history"]) setStreakHistory(JSON.parse(cloudData[STORAGE_KEY + "_streak_history"]));
-                    if (cloudData[STORAGE_KEY + "_last_reset"]) setLastReset(cloudData[STORAGE_KEY + "_last_reset"]);
-                    if (cloudData[STORAGE_KEY + "_mission_start"]) setMissionStart(new Date(cloudData[STORAGE_KEY + "_mission_start"]));
-
-                    for (let key in cloudData) {
-                        localStorage.setItem(key, typeof cloudData[key] === 'string' ? cloudData[key] : JSON.stringify(cloudData[key]));
-                    }
-                    setCloudError(null); // Clear errors on success
-                } catch (e) {
-                    setCloudError("Hydration JSON Parse Error: " + e.message);
-                }
+                applyStateFromData(data.state_json);
+                setCloudError(null);
             }
 
             // Unlock syncing and UI rendering ONLY AFTER hydration finishes
@@ -303,6 +338,8 @@ export default function App() {
         return <AuthView />;
     }
 
+    const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Explorer';
+
     if (!isHydrated) {
         return (
             <div className="min-h-screen flex flex-col gap-4 items-center justify-center bg-[#0a0a14]">
@@ -321,17 +358,17 @@ export default function App() {
                 </div>
             )}
             <div className={cloudError ? "pt-12" : ""}>
-                <Navigation headerPct={headerPct} streak={derivedStreak} elapsedDays={elapsedDays} />
+                <Navigation headerPct={headerPct} streak={derivedStreak} elapsedDays={elapsedDays} userName={userName} />
 
                 <div className="max-w-[960px] mx-auto py-5 px-3 sm:px-6 md:py-8">
                     <Routes>
                         <Route path="/" element={<Dashboard statusMap={statusMap} kpiMap={kpiMap} counters={counters} hourly={hourly} streak={derivedStreak} elapsedDays={elapsedDays} />} />
-                        <Route path="/hourly" element={<HourlyView hourly={hourly} setHourly={setHourly} counters={counters} setCounters={setCounters} notes={notes} setNotes={setNotes} />} />
+                        <Route path="/hourly" element={<HourlyView hourly={hourly} setHourly={setHourly} counters={counters} setCounters={setCounters} notes={notes} setNotes={setNotes} userName={userName} />} />
                         <Route path="/aptitude" element={<AptitudeView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
                         <Route path="/dsa" element={<DSAView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} />} />
                         <Route path="/cs" element={<CoreCSView statusMap={statusMap} onToggleStatus={toggleStatus} />} />
                         <Route path="/weekly" element={<WeeklyView kpiMap={kpiMap} onToggle={toggleKpi} counters={counters} setCounters={setCounters} />} />
-                        <Route path="/settings" element={<SettingsView />} />
+                        <Route path="/settings" element={<SettingsView onRestore={applyStateFromData} onHardReset={handleHardReset} />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </div>
