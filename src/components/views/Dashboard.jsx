@@ -4,7 +4,9 @@ import { Ring } from "../ui/Ring";
 import { Chip } from "../ui/Chip";
 import { Bar } from "../ui/Bar";
 
-export function Dashboard({ statusMap, kpiMap, counters, hourly, streak, elapsedDays }) {
+import { ContributionGraph } from "./ContributionGraph";
+
+export function Dashboard({ statusMap, kpiMap, counters, hourly, streak, elapsedDays, streakHistory, missionStart }) {
     const navigate = useNavigate();
     const lrMastered = LOGICAL_REASONING.filter(t => statusMap[t.id] === 2).length;
     const qaMastered = QUANTITATIVE_APTITUDE.filter(t => statusMap[t.id] === 2).length;
@@ -51,6 +53,8 @@ export function Dashboard({ statusMap, kpiMap, counters, hourly, streak, elapsed
             </div>
 
             {/* Overall ring + progress */}
+            <ContributionGraph streakHistory={streakHistory} missionStart={missionStart} />
+
             <div className="bg-[#0e0e1a] border border-[#1e1e2e] rounded-[14px] p-4 sm:p-[18px] mb-[18px] flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 text-center sm:text-left">
                 <Ring pct={overallPct} size={80} sw={8} color={overallPct >= 70 ? "#10b981" : overallPct >= 40 ? "#f59e0b" : "#3b82f6"} />
                 <div className="flex-1 w-full">

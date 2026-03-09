@@ -381,7 +381,7 @@ export default function App() {
 
                 <div className="max-w-[960px] mx-auto py-5 px-3 sm:px-6 md:py-8">
                     <Routes>
-                        <Route path="/" element={<Dashboard statusMap={statusMap} kpiMap={kpiMap} counters={counters} hourly={hourly} streak={derivedStreak} elapsedDays={elapsedDays} />} />
+                        <Route path="/" element={<Dashboard statusMap={statusMap} kpiMap={kpiMap} counters={counters} hourly={hourly} streak={derivedStreak} elapsedDays={elapsedDays} streakHistory={streakHistory} missionStart={missionStart} />} />
                         <Route path="/hourly" element={<HourlyView hourly={hourly} setHourly={setHourly} counters={counters} setCounters={setCounters} onUpdateCounter={handleCounterChange} notes={notes} setNotes={setNotes} userName={userName} />} />
                         <Route path="/aptitude" element={<AptitudeView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} onUpdateCounter={handleCounterChange} />} />
                         <Route path="/dsa" element={<DSAView statusMap={statusMap} onToggleStatus={toggleStatus} counters={counters} setCounters={setCounters} onUpdateCounter={handleCounterChange} />} />
