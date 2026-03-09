@@ -43,11 +43,16 @@ export function Navigation({ headerPct, streak, elapsedDays }) {
                         <span className="text-[#ff4500] font-bold text-[11px]">{streak.current}</span>
                     </div>
                 )}
-                <div className="text-right">
-                    <div className="hidden sm:block text-[9px] text-[#444]">OVERALL</div>
-                    <div className="font-mono text-xs sm:text-sm font-bold text-[#3b82f6]">
-                        {headerPct}%
+                <div className="text-right flex items-center gap-3">
+                    <div>
+                        <div className="hidden sm:block text-[9px] text-[#444]">OVERALL</div>
+                        <div className="font-mono text-xs sm:text-sm font-bold text-[#3b82f6]">
+                            {headerPct}%
+                        </div>
                     </div>
+                    <Link to="/settings" className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-[#1a1a2a] text-[#888] hover:text-[#fff] transition-colors border border-[#333344] hover:border-[#555577]">
+                        ⚙️
+                    </Link>
                 </div>
             </div>
         </div>
